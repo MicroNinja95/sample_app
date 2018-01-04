@@ -4,22 +4,22 @@ class UsersController < ApplicationController
   before_action :logged_in_user, only: [:edit, :update]
   before_action :admin_user, only: :destroy
   def index
-    @users = UserUser.paginate(page: params[:page])
+    @users = User.where(activated: true).paginate(page: params[:page])
   end
   def show
     @user = User.find(params[:id])
+    redirect_to root_url and return unless activated: false
   end
   def new
     @user = User.new
   end
   def create
-    user = User.find_by(email: params[:session][:email].downcase)
-    if user && user.authenticate(params[:session][:password])
-      log_in user
-      params[:session][:remember_me] == '1' ? remember(user) : forget(user)
-      redirect_back_or user
+    @user = User.new(user_params)
+    if @user.save
+      UserMailer.account_activation(@user).deliver_now
+      flash[:info] = "Please check your email to activate your account."
+      redirect_to root_url
     else
-      flash.now[:danger] = 'Invalid email/password combination'
       render 'new'
     end
   end
